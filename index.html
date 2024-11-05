@@ -1,0 +1,192 @@
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <meta name="theme-color" content="#4F7DC9">
+  <meta charset="UTF-8">
+  <title>Hardening del arranque de Linux y GRUB</title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source+Code+Pro:400|Roboto:400,300,400italic,500,700|Roboto+Mono">
+  <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://storage.googleapis.com/claat-public/codelab-elements.css">
+  <style>
+    .success {
+      color: #1e8e3e;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <google-codelab-analytics gaid="UA-49880327-14"></google-codelab-analytics>
+  <google-codelab codelab-gaid=""
+                  id="12"
+                  title="Hardening del arranque de Linux y GRUB"
+                  environment="web"
+                  feedback-link="https://github.com/V0id-array/Bastionado_Proyecto-1.1/issues">
+    
+      <google-codelab-step label="Introducción" duration="0">
+        <p class="image-container"><img alt="image.png" src="img/e490f4b94b24db0c.png"></p>
+<p>El proceso de arranque de un sistema operativo Linux, como se ilustra en el diagrama, es una secuencia ordenada de eventos que inicia con el encendido del equipo y culmina con la carga completa del sistema operativo</p>
+<ol type="1">
+<li><strong>Encendido y POST:</strong> Al encender el equipo, el BIOS o UEFI (Firmware de la placa base) realiza una serie de autocomprobaciones (POST) para verificar que el hardware funcione correctamente.</li>
+<li><strong>Dispositivo de arranque:</strong> Una vez superado el POST, el sistema busca el dispositivo de arranque configurado (generalmente un disco duro o una unidad USB) y carga el primer sector de este dispositivo.</li>
+<li><strong>Cargador de arranque (GRUB2):</strong> Este sector contiene el cargador de arranque, típicamente GRUB2. GRUB2 es un programa pequeño y potente que permite al usuario seleccionar el sistema operativo a cargar y proporciona opciones de configuración adicionales.</li>
+<li><strong>Kernel:</strong> Tras seleccionar una opción de arranque, GRUB2 carga el kernel de Linux en la memoria. El kernel es el núcleo del sistema operativo y se encarga de gestionar los recursos del hardware y de iniciar los procesos necesarios para el funcionamiento del sistema.</li>
+<li><strong>Iniciación del sistema:</strong> Una vez cargado el kernel, se inicia el proceso de inicialización del sistema, que puede seguir diferentes modelos (niveles de ejecución o systemd).</li>
+</ol>
+<p>GRUB2 tiene un papel importante en este proceso, ya que actúa como una puerta de entrada al sistema operativo. Al controlar qué kernel se carga y con qué parámetros, comprometer GRUB2 significaría llegar a tener control total del sistema. Un atacante que logre comprometer GRUB2 puede modificar el proceso de inicio, instalar software malicioso, ejecutar codigo con privilegios de administrador o acceder a los datos de los discos duros.</p>
+<p>Para esta práctica se utilizará una máquina virtual en VirtualBox con Debian 12.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Ocultación del arranque" duration="0">
+        <p>Para esto se ha editado el archivo /etc/default/grub</p>
+<p><code>GRUB_TIMEOUT_STYLE=menu</code>  a <code>GRUB_TIMEOUT_STYLE=hidden</code>  y</p>
+<p><code>GRUB_TIMEOUT=5</code> a <code>GRUB_TIMEOUT=0</code></p>
+<p class="image-container"><img alt="image.png" src="img/abc5f50e1c67782c.png"></p>
+<p>Para aplicar los cambios:</p>
+<pre><code language="language-bash" class="language-bash">$ sudo update-grub
+</code></pre>
+<p>Tras estos cambios, al reiniciar no debería aparecer el menú del GRUB sino que directamente cargaría el sistema operativo.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Contraseña de arranque" duration="0">
+        <p>fuente: <a href="https://linuxconfig.org/set-boot-password-with-grub" target="_blank">https://linuxconfig.org/set-boot-password-with-grub</a></p>
+<p>El primer paso es generar un hash de la contraseña utilizando un comando específico. Esto evita que la contraseña sea visible si alguien llegara a acceder al archivo de configuración de GRUB.</p>
+<p class="image-container"><img alt="image.png" src="img/563190c80d38822b.png"></p>
+<p>Para introducirla, se abre el siguiente archivo de configuración de GRUB:</p>
+<pre><code language="language-bash" class="language-bash">$ sudo nano /etc/grub.d/00_header
+</code></pre>
+<p>Y se añaden las siguientes lineas al final, cambiar los campos <code>USUARIO</code> por el nombre de usuario que se desee e <code>INSERT-HASH</code> por el creado en el paso anterior.</p>
+<pre><code language="language-bash" class="language-bash">cat &lt;&lt; EOF
+set superusers=&#34;USUARIO&#34;
+password_pbkdf2 USUARIO INSERT-HASH
+EOF
+</code></pre>
+<p>para guardar cambios en el editor nano, pulsar &#34;Control&#34; + &#34;o&#34; y salir con &#34;Control&#34; + &#34;x&#34;</p>
+<p class="image-container"><img alt="image.png" src="img/5d3073e785abcee2.png"></p>
+<p>Para aplicar los cambios se tiene que ejecutar un <code>update-grub</code> y probarse reiniciando el equipo</p>
+<pre><code language="language-bash" class="language-bash">$ sudo update-grub
+$ sudo reboot 
+</code></pre>
+<p>Resultado:</p>
+<p class="image-container"><img alt="image.png" src="img/77282e16c374992a.png"></p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Copia de seguridad" duration="0">
+        <p>fuente: <a href="https://wiki.archlinux.org/title/GRUB/Tips_and_tricks" target="_blank">https://wiki.archlinux.org/title/GRUB/Tips_and_tricks</a></p>
+<p>Para esta practica los he copiado simplemente con el comando <code>cp</code></p>
+<p>Los archivos de configuración del GRUB se pueden copiar con los siguientes comandos (editar los PATH a los convenientes) :</p>
+<pre><code language="language-bash" class="language-bash">sudo cp /etc/default/grub /path/to/backup/
+sudo cp -r /etc/grub.d /path/to/backup/
+sudo cp /boot/grub/grub.cfg /path/to/backup/
+sudo cp /boot/grub/custom.cfg /path/to/backup
+</code></pre>
+<p>Para restaurar la configuración se tendría que copiar los archivos desde donde se hayan guardado y sustituir los que tenga el GRUB actualmente:</p>
+<pre><code language="language-bash" class="language-bash">sudo cp /path/to/backup/ /etc/default/grub
+sudo cp -r /path/to/backup/ /etc/grub.d 
+sudo cp /path/to/backup/ /boot/grub/grub.cfg
+sudo cp /path/to/backup /boot/grub/custom.cfg
+</code></pre>
+<p>Por último aplicar los cambios actualizando el GRUB con:</p>
+<pre><code language="language-bash" class="language-bash">$ sudo update-grub
+</code></pre>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Otras opciones de seguridad" duration="0">
+        <p>fuente: <a href="https://soloconlinux.org.es/securizando-grub/" target="_blank">https://soloconlinux.org.es/securizando-grub/</a></p>
+<p>Otras medidas de seguridad para proteger el arranque pueden incluir encriptar las particiones del disco y modificar los parámetros del kernel. A continuación se explica de manera básica ambos procesos.</p>
+<h2 is-upgraded><strong>Encriptar los discos duros con LUKS</strong></h2>
+<p>Es necesario tener instalado cryptsetup. Se puede instalar con el siguiente comando en sistemas Debian/Ubuntu:</p>
+<pre><code language="language-bash" class="language-bash">sudo apt install cryptsetup
+</code></pre>
+<p>Se requiere una partición vacía para la encriptación. Por ejemplo, se asume que la partición a encriptar es /dev/sdb2.</p>
+<p>Para encriptar la partición, se ejecuta el siguiente comando:</p>
+<pre><code language="language-bash" class="language-bash">sudo cryptsetup luksFormat /dev/sdb2
+</code></pre>
+<p>Se debe introducir una contraseña para proteger la partición.</p>
+<p>Para acceder a la partición encriptada, se utiliza el siguiente comando:</p>
+<pre><code language="language-bash" class="language-bash">sudo cryptsetup luksOpen /dev/sdb2 nombreParticion
+</code></pre>
+<p>Después de abrir la partición, es necesario formatearla con un sistema de archivos. Para formatearla como ext4:</p>
+<pre><code language="language-bash" class="language-bash">sudo mkfs.ext4 /dev/mapper/nombreParticion
+</code></pre>
+<p>Se crea un punto de montaje y se monta la partición:</p>
+<pre><code language="language-bash" class="language-bash">mkdir /mnt/particionsecreta
+sudo mount /dev/mapper/nombreParticion /mnt/particionsecreta
+</code></pre>
+<p>El estado de la partición encriptada se puede verificar con el siguiente comando:</p>
+<pre><code language="language-bash" class="language-bash">sudo cryptsetup -v status nombreParticion
+</code></pre>
+<p>Para desmontar y cerrar el volumen:</p>
+<pre><code language="language-bash" class="language-bash">sudo umount /mnt/particionsecreta
+sudo cryptsetup luksClose nombreParticion
+</code></pre>
+<p>Para montar la partición automáticamente al inicio, es necesario editar los archivos /etc/crypttab y /etc/fstab.</p>
+<pre><code language="language-bash" class="language-bash">sudo nano /etc/crypttab
+</code></pre>
+<p>Se agrega la siguiente línea:</p>
+<pre><code>nombreParticion /dev/sdb2 none luks
+</code></pre>
+<pre><code language="language-bash" class="language-bash">sudo nano /etc/fstab
+</code></pre>
+<p>Se agrega la siguiente línea:</p>
+<pre><code>/dev/mapper/nombreParticion /mnt/particionsecreta ext4 defaults 0 2
+</code></pre>
+<p>Con esta configuración, se solicitará la contraseña para desbloquear la partición en cada inicio del sistema.</p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Activar opciones del kernel al arranque:" duration="0">
+        <p>Estas se pueden activar desde los parámetros de GRUB en el siguiente fichero <code>/etc/default/grub</code></p>
+<p><code>GRUB_CMDLINE_LINUX_DEFAULT="quiet splash kaslr"</code></p>
+<p>Estas son algunas de las opciones que pueden mejorar las seguridad del sistema en el aranque:</p>
+<ul>
+<li><strong>CONFIG_DEBUG_SG=y</strong>, <strong>CONFIG_DEBUG_NOTIFIERS=y</strong>, <strong>CONFIG_DEBUG_CREDENTIALS=y</strong>, <strong>CONFIG_DEBUG_LIST=y</strong>, <strong>CONFIG_BUG_ON_DATA_CORRUPTION=y</strong>, <strong>CONFIG_SCHED_STACK_END_CHECK=y</strong>: Estas configuraciones activan la validación de estructuras frecuentemente atacadas, como tablas SG, cadenas de llamadas de notificación, gestión de credenciales y manipulación de listas enlazadas.</li>
+<li><strong>CONFIG_DEBUG_VIRTUAL=y</strong>: Activa verificaciones de integridad en el código que convierte direcciones virtuales a físicas, ayudando a prevenir ciertas corrupciones de datos.</li>
+<li><strong>CONFIG_INTEL_IOMMU_DEFAULT_ON=y</strong>: Activa el IOMMU por defecto para proteger contra ataques DMA (Acceso Directo a Memoria).</li>
+<li><strong>CONFIG_GCC_PLUGIN_STRUCTLEAK=y</strong>: Inicializa automáticamente las variables de pila a cero, mitigando vulnerabilidades relacionadas con memoria no inicializada. Utiliza la opción más robusta de STRUCTLEAK (BYREF_ALL).</li>
+<li><strong>CONFIG_GCC_PLUGIN_RANDSTRUCT=y</strong>: Aleatoriza la disposición de las estructuras sensibles del kernel. No se debilita esta función con la opción RANDSTRUCT_PERFORMANCE.</li>
+<li><strong>CONFIG_GCC_PLUGIN_LATENT_ENTROPY=y</strong>: Permite recopilar más entropía durante el arranque.</li>
+<li><strong>CONFIG_RESET_ATTACK_MITIGATION=y</strong>: Previene ataques de arranque en frío sobrescribiendo la memoria con ceros al apagarse. Requiere soporte del firmware.</li>
+<li><strong>CONFIG_CRYPTO_JITTERENTROPY=y</strong>, <strong>CONFIG_HW_RANDOM_INTEL=y</strong>, <strong>CONFIG_HW_RANDOM_AMD=y</strong>, etc.: Integran Jitterentropy y varios generadores de números aleatorios basados en hardware (HWRNG) para mejorar la entropía.</li>
+<li><strong>CONFIG_MODULE_SIG_ALL=y</strong>, <strong>CONFIG_MODULE_SIG_HASH=&#34;sha512&#34;</strong>: Firma todos los módulos del kernel durante la compilación usando SHA512, la función hash más robusta disponible. La verificación de firmas aún no se aplica.</li>
+<li><strong>CONFIG_PANIC_ON_OOPS=y</strong>: Provoca que el kernel entre en pánico ante errores &#34;oops&#34;, frustrando ciertos tipos de exploits. Solo se habilita para el kernel endurecido (hardened-vm-kernel) debido a posibles problemas en algunas máquinas host. Se recomienda que los hosts activen esta característica mediante el paquete <code>security-misc</code>.</li>
+<li><strong>CONFIG_MAGIC_SYSRQ_DEFAULT_ENABLE=0x84</strong>: Limita la tecla SysRq para permitir únicamente las funciones SAK (Secure Attention Key) y apagados.</li>
+</ul>
+<p>Para aplicar los cambios:</p>
+<pre><code language="language-bash" class="language-bash">$ sudo update-grub
+</code></pre>
+<p>En el enlace de la fuente se pueden encontrar más opciones con las que para customizar el kernel o descargarnos. <a href="https://www.kicksecure.com/wiki/Hardened-kernel" target="_blank">https://www.kicksecure.com/wiki/Hardened-kernel</a></p>
+<p>También podemos descargarnos la configuración del proyecto <a href="https://www.kicksecure.com/wiki/Download" target="_blank">hardened-kernel</a></p>
+
+
+      </google-codelab-step>
+    
+      <google-codelab-step label="Conclusión" duration="0">
+        <p>El hardening en Linux es un proceso continuo que requiere atención y adaptación a medida que surgen nuevas amenazas. Implementar las mejores prácticas descritas no solo ayuda a proteger el sistema contra ataques, sino que también contribuye al cumplimiento de normativas y estándares de seguridad. Al adoptar un enfoque proactivo hacia la seguridad, los administradores pueden garantizar que sus sistemas Linux operen en un entorno seguro y resiliente.</p>
+
+
+      </google-codelab-step>
+    
+  </google-codelab>
+
+  <script src="https://storage.googleapis.com/claat-public/native-shim.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/custom-elements.min.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/prettify.js"></script>
+  <script src="https://storage.googleapis.com/claat-public/codelab-elements.js"></script>
+  <script src="//support.google.com/inapp/api.js"></script>
+
+</body>
+</html>

@@ -1,7 +1,14 @@
+author: Félix Saánchez González
+summary: Proyecto sobre hardened de arranque de Linux
+id: 12
+categories: codelab,markdown
+environments: Linux
+status: Published
+feedback link: https://github.com/V0id-array/Bastionado_Proyecto-1.2/issues
 # Hardening del arranque de Linux y GRUB
 
 ## Introducción
-![image.png](Proyecto%20bastionado%2012ac935dfacf804cbdbbfe57644bb998/boot-process.png)
+![image.png](resources/boot-process.png)
 
 El proceso de arranque de un sistema operativo Linux, como se ilustra en el diagrama, es una secuencia ordenada de eventos que inicia con el encendido del equipo y culmina con la carga completa del sistema operativo
 
@@ -13,23 +20,10 @@ El proceso de arranque de un sistema operativo Linux, como se ilustra en el diag
 
 GRUB2 tiene un papel importante en este proceso, ya que actúa como una puerta de entrada al sistema operativo. Al controlar qué kernel se carga y con qué parámetros, comprometer GRUB2 significaría llegar a tener control total del sistema. Un atacante que logre comprometer GRUB2 puede modificar el proceso de inicio, instalar software malicioso, ejecutar codigo con privilegios de administrador o acceder a los datos de los discos duros. 
 
+Para esta práctica se utilizará una máquina virtual en VirtualBox con Debian 12.
 
-**Al fortalecer la seguridad del arranque, se garantiza la integridad y confidencialidad de los datos almacenados en el sistema, minimizando el riesgo de ataques como rootkits, que se ocultan en las etapas iniciales del arranque.**
 
-**Medidas de seguridad típicas para el arranque incluyen:**
 
-* **Encriptación del disco:** Protege los datos en reposo.
-* **Contraseñas seguras para GRUB2:** Impiden accesos no autorizados.
-* **Verificación de la integridad del cargador de arranque:** Detecta modificaciones no autorizadas.
-* **Uso de módulos de firmware seguros:** Reduce la superficie de ataque.
-
-En resumen, el proceso de arranque es un eslabón crítico en la seguridad de un sistema Linux. Al comprender su funcionamiento y aplicar las medidas de seguridad adecuadas, se puede fortalecer significativamente la protección del equipo.
-
-¿Te gustaría profundizar en alguna de estas medidas de seguridad o explorar otras opciones?
-
-## Entorno de la práctica:
-
-Se ha utilizado una máquina virtual en VirtualBox con Debian 12.
 
 ## **Ocultación del arranque**
 
@@ -39,7 +33,7 @@ Para esto se ha editado el archivo /etc/default/grub
 
 `GRUB_TIMEOUT=5` a `GRUB_TIMEOUT=0` 
 
-![image.png](Proyecto%20bastionado%2012ac935dfacf804cbdbbfe57644bb998/image%201.png)
+![image.png](resources/image2-1.png)
 
 Para aplicar los cambios:
 
@@ -55,7 +49,7 @@ fuente: [https://linuxconfig.org/set-boot-password-with-grub](https://linuxconfi
 
 El primer paso es generar un hash de la contraseña utilizando un comando específico. Esto evita que la contraseña sea visible si alguien llegara a acceder al archivo de configuración de GRUB. 
 
-![image.png](Proyecto%20bastionado%2012ac935dfacf804cbdbbfe57644bb998/image%202.png)
+![image.png](resources/image2-2.png)
 
 Para introducirla, se abre el siguiente archivo de configuración de GRUB:
 
@@ -74,7 +68,7 @@ EOF
 
 para guardar cambios en el editor nano, pulsar “Control” + “o” y salir con “Control” + “x”
 
-![image.png](Proyecto%20bastionado%2012ac935dfacf804cbdbbfe57644bb998/image%203.png)
+![image.png](resources/image2-3.png)
 
 Para aplicar los cambios se tiene que ejecutar un `update-grub` y probarse reiniciando el equipo
  
@@ -86,7 +80,7 @@ $ sudo reboot
 
 Resultado:
 
-![image.png](Proyecto%20bastionado%2012ac935dfacf804cbdbbfe57644bb998/a3b7af2c-74f2-441b-a4bd-75149e1ca731.png)
+![image.png](resources/image2-4.png)
 
 ## **Copia de seguridad**
 
